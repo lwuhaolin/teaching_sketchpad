@@ -1,0 +1,100 @@
+# Java
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+target/
+!target/.gitkeep
+
+# Maven
+dependency-reduced-pom.xml
+*.orig
+
+# Eclipse
+.project
+.classpath
+.settings/
+.factorypath
+.metadata/
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.loadpath
+.recommenders
+.DS_Store
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+.idea_modules/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# NetBeans
+/nbproject/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!nbproject/private/
+/nbproject/private/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Windows temporary files
+*.tmp
+*.temp
+*.log
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+
+# Runtime / cache
+cache/
+*.cache
+
+# Test reports
+surefire-reports/
+test-output/
+
+# Java debug files
+*.hprof
+*.dump
+
+# Native library archives (LWJGL natives)
+*.dll
+*.so
+*.dylib
+*.jnilib
+
+# Application data / persistence (if any runtime data is generated)
+data/
+*.json.bak
+*.xml.bak
+
+# Build artifacts from packaging
+*.jar.sha1
+*.jar.md5
