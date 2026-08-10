@@ -34,10 +34,7 @@ public class Main {
         System.out.println(launcher.getEnvironment().toSummary());
         System.out.println(launcher.getSystemCheck().toSummary());
 
-        // Start the application
-        launcher.start();
-
-        // Simple demo: add some geometry objects
+        // Demo: add some geometry objects to the scene
         com.geometry.core.geometry.Cube cube = new com.geometry.core.geometry.Cube(2f, 2f, 2f);
         launcher.getScene().addObject("cube_001", cube);
 
@@ -50,12 +47,25 @@ public class Main {
 
         System.out.println("Objects in scene: " + launcher.getScene().getObjectCount());
 
+        // Start the application
+        launcher.start();
+
         // Note: In a full application, the main loop would run here.
         // The application stays running until stopped.
         System.out.println("Application ready. Press Ctrl+C to exit.");
 
-        // For headless / test environments, exit immediately.
-        // In a real application, a display loop would keep this running.
+        // Keep the main thread alive so the Swing window stays visible.
+        // The window will be closed via JFrame.EXIT_ON_CLOSE or Ctrl+C.
+        while (launcher.isRunning()) {
+            try {
+                Thread.sleep(500);
+                launcher.update();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+
         launcher.stop();
     }
 }

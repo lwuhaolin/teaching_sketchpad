@@ -161,7 +161,7 @@ public class UIEventBridge {
             return;
         }
         String toolName = event.getStringData();
-        if (toolName != null && !toolName.isEmpty()) {
+        if (toolName != null && !toolName.isEmpty() && toolManager.getToolNames().contains(toolName)) {
             toolManager.switchTool(toolName);
         }
     }

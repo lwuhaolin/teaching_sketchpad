@@ -1,36 +1,23 @@
 package com.geometry.ui;
 
-import com.geometry.ui.bridge.UIEventBridge;
-import com.geometry.ui.canvas.CanvasInteractionLayer;
-import com.geometry.ui.panel.AnimationPanel;
-import com.geometry.ui.panel.PropertyPanel;
-import com.geometry.ui.panel.SceneTreePanel;
-import com.geometry.ui.panel.TeachingPanel;
-import com.geometry.tools.ToolManager;
-import com.geometry.teaching.TeachingManager;
 import com.geometry.animation.AnimationManager;
-import com.geometry.scene.Scene;
 import com.geometry.interaction.InteractionManager;
+import com.geometry.scene.Scene;
+import com.geometry.teaching.TeachingManager;
+import com.geometry.tools.ToolManager;
+import com.geometry.ui.component.GeometryCanvasView;
+import com.geometry.ui.input.InputModeManager;
+import com.geometry.ui.workspace.TeachingWorkspace;
 
 /**
- * Phase 11 - Main application window.
+ * Phase 13 - Real Swing application window.
  *
- * Creates and manages the top-level window containing the Workspace.
- * This class is responsible for:
- *   - Creating the Workspace with all dependencies
- *   - Providing access to core engine references
- *   - Managing the application lifecycle
- *
- * It does NOT:
- *   - Handle OpenGL rendering (that's the Renderer's job)
- *   - Process input events directly (handled by InteractionManager)
- *   - Manage scene state (handled by Scene)
+ * Creates and manages the top-level Swing JFrame that contains
+ * the complete TeachingWorkspace.  This replaces the headless
+ * ApplicationWindow from Phase 11.
  *
  * Usage:
- *   ApplicationWindow window = new ApplicationWindow(
- *       scene, toolManager, interactionManager,
- *       teachingManager, animationManager
- *   );
+ *   ApplicationWindow window = new ApplicationWindow(scene, toolManager, ...);
  *   window.create();
  *   window.show();
  *
@@ -38,8 +25,11 @@ import com.geometry.interaction.InteractionManager;
  */
 public class ApplicationWindow {
 
-    /** The workspace managed by this window. */
-    private final Workspace workspace;
+    /** The teaching workspace (Swing JFrame). */
+    private TeachingWorkspace teachingWorkspace;
+
+    /** Whether the window has been created. */
+    private boolean created;
 
     /** The core scene. */
     private final Scene scene;
@@ -56,17 +46,14 @@ public class ApplicationWindow {
     /** The animation manager. */
     private final AnimationManager animationManager;
 
-    /** Whether the window has been created. */
-    private boolean created;
-
     /**
-     * Create an ApplicationWindow with all engine dependencies.
+     * Create an ApplicationWindow.
      *
-     * @param scene              the scene (may be null in tests)
-     * @param toolManager        the tool manager (may be null in tests)
-     * @param interactionManager the interaction manager (may be null in tests)
-     * @param teachingManager    the teaching manager (may be null in tests)
-     * @param animationManager   the animation manager (may be null in tests)
+     * @param scene              the scene
+     * @param toolManager        the tool manager
+     * @param interactionManager the interaction manager
+     * @param teachingManager    the teaching manager (may be null)
+     * @param animationManager   the animation manager (may be null)
      */
     public ApplicationWindow(
             Scene scene,
@@ -80,45 +67,7 @@ public class ApplicationWindow {
         this.teachingManager = teachingManager;
         this.animationManager = animationManager;
         this.created = false;
-        this.workspace = createWorkspace();
-    }
-
-    // ------------------------------------------------------------------
-    // Workspace creation
-    // ------------------------------------------------------------------
-
-    private Workspace createWorkspace() {
-        // Create event bridge
-        UIEventBridge bridge = new UIEventBridge(toolManager, scene, interactionManager);
-
-        // Create layout manager (desktop mode, default size)
-        LayoutManager layoutManager = new LayoutManager(
-                UIInteractionMode.DESKTOP,
-                1024,
-                768
-        );
-
-        // Create panels
-        SceneTreePanel sceneTreePanel = new SceneTreePanel(scene, bridge);
-        PropertyPanel propertyPanel = new PropertyPanel();
-        TeachingPanel teachingPanel = new TeachingPanel(teachingManager, bridge);
-        AnimationPanel animationPanel = new AnimationPanel(animationManager, bridge);
-
-        // Create workspace
-        Workspace workspace = new Workspace(
-                layoutManager, bridge,
-                sceneTreePanel, propertyPanel,
-                teachingPanel, animationPanel
-        );
-
-        // Set up canvas interaction layer if we have the dependencies
-        if (scene != null && interactionManager != null) {
-            CanvasInteractionLayer canvasLayer = new CanvasInteractionLayer(
-                    scene, interactionManager);
-            workspace.setCanvasInteractionLayer(canvasLayer);
-        }
-
-        return workspace;
+        this.teachingWorkspace = null;
     }
 
     // ------------------------------------------------------------------
@@ -126,8 +75,7 @@ public class ApplicationWindow {
     // ------------------------------------------------------------------
 
     /**
-     * Create the window. In a real application this would create the
-     * actual OS window. In headless mode, this is a no-op.
+     * Create the Swing window.
      *
      * @return true if creation succeeded
      */
@@ -135,30 +83,42 @@ public class ApplicationWindow {
         if (created) {
             return true;
         }
+        teachingWorkspace = new TeachingWorkspace(
+                scene, toolManager, interactionManager,
+                teachingManager, animationManager);
         created = true;
         return true;
     }
 
     /**
-     * Show the window.
+     * Show the window on screen.
      */
     public void show() {
-        // In a real application this would make the window visible.
-        // For headless/testing, this is a no-op.
-    }
-
-    /**
-     * Check if the window is created.
-     */
-    public boolean isCreated() {
-        return created;
+        if (!created) {
+            create();
+        }
+        if (teachingWorkspace != null) {
+            teachingWorkspace.showWorkspace();
+        }
     }
 
     /**
      * Close the window.
      */
     public void close() {
+        if (teachingWorkspace != null) {
+            teachingWorkspace.dispose();
+        }
         created = false;
+        teachingWorkspace = null;
+    }
+
+    /**
+     * Force-recreate the window (for testing).
+     */
+    public void forceRecreate() {
+        created = false;
+        teachingWorkspace = null;
     }
 
     // ------------------------------------------------------------------
@@ -166,10 +126,24 @@ public class ApplicationWindow {
     // ------------------------------------------------------------------
 
     /**
-     * Get the workspace.
+     * Get the teaching workspace.
+     */
+    public TeachingWorkspace getTeachingWorkspace() {
+        return teachingWorkspace;
+    }
+
+    /**
+     * Get the workspace model.
      */
     public Workspace getWorkspace() {
-        return workspace;
+        if (teachingWorkspace != null) {
+            return teachingWorkspace.getWorkspace();
+        }
+        // Lazy init for tests that check workspace without calling create()
+        if (!created) {
+            create();
+        }
+        return teachingWorkspace != null ? teachingWorkspace.getWorkspace() : null;
     }
 
     /**
@@ -205,5 +179,26 @@ public class ApplicationWindow {
      */
     public AnimationManager getAnimationManager() {
         return animationManager;
+    }
+
+    /**
+     * Check if the window has been created.
+     */
+    public boolean isCreated() {
+        return created;
+    }
+
+    /**
+     * Get the input mode manager.
+     */
+    public InputModeManager getInputModeManager() {
+        return teachingWorkspace != null ? teachingWorkspace.getInputModeManager() : null;
+    }
+
+    /**
+     * Get the geometry canvas view.
+     */
+    public GeometryCanvasView getCanvasView() {
+        return teachingWorkspace != null ? teachingWorkspace.getCanvasView() : null;
     }
 }
