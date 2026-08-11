@@ -48,7 +48,7 @@ public class FloatingToolBar extends JPanel {
         this.theme = theme;
         this.contentPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
         this.contentPanel.setOpaque(true);
-        this.contentPanel.setBackground(theme.getToolbarColor());
+        this.contentPanel.setBackground(theme.getHeaderColor());
         this.contentPanel.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
         this.setLayout(new BorderLayout());
         this.add(contentPanel);
@@ -77,8 +77,8 @@ public class FloatingToolBar extends JPanel {
     public void addToolButton(String text, String action, ActionListener listener) {
         JButton btn = new JButton(text);
         btn.setFont(theme.getButtonFont(com.geometry.ui.input.InputMode.DESKTOP));
-        btn.setBackground(theme.getActiveToolColor());
-        btn.setForeground(theme.getToolbarTextColor());
+        btn.setBackground(theme.getPrimaryColor());
+        btn.setForeground(theme.getHeaderTextColor());
         btn.setFocusPainted(false);
         btn.setContentAreaFilled(true);
         btn.setPreferredSize(new Dimension(64, 56));

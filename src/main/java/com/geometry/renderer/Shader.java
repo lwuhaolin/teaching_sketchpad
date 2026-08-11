@@ -131,6 +131,13 @@ public class Shader {
      * @param values array of floats
      */
     public void setFloatArray(String name, float[] values) {
+        if (values == null) {
+            throw new IllegalArgumentException("Uniform values cannot be null");
+        }
+        if (values.length == 16) {
+            GL20.glUniformMatrix4fv(getUniformLocation(name), false, values);
+            return;
+        }
         GL20.glUniform1fv(getUniformLocation(name), values);
     }
 

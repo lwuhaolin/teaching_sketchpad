@@ -37,7 +37,7 @@ public class BottomActionBar extends JPanel {
         this.theme = theme;
         this.buttons = new ArrayList<>();
         setLayout(new FlowLayout(FlowLayout.CENTER, 12, 0));
-        setBackground(theme.getToolbarColor());
+        setBackground(theme.getHeaderColor());
         setPreferredSize(new Dimension(0, BAR_HEIGHT));
         setMinimumSize(new Dimension(0, BAR_HEIGHT));
         setMaximumSize(new Dimension(Integer.MAX_VALUE, BAR_HEIGHT));
@@ -53,8 +53,8 @@ public class BottomActionBar extends JPanel {
     public void addButton(String text, String action, ActionListener listener) {
         JButton btn = new JButton(text);
         btn.setFont(theme.getButtonFont(com.geometry.ui.input.InputMode.DESKTOP));
-        btn.setBackground(theme.getActiveToolColor());
-        btn.setForeground(theme.getToolbarTextColor());
+        btn.setBackground(theme.getPrimaryColor());
+        btn.setForeground(theme.getHeaderTextColor());
         btn.setFocusPainted(false);
         btn.setPreferredSize(new Dimension(80, 40));
         btn.setActionCommand(action);

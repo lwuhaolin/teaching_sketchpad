@@ -79,27 +79,18 @@ public class RuntimeEnvironment {
     // ------------------------------------------------------------------
 
     private String detectOpenGLVersion() {
-        try {
-            return org.lwjgl.opengl.GL11.glGetString(org.lwjgl.opengl.GL11.GL_VERSION);
-        } catch (Throwable t) {
-            return "";
-        }
+        // glGetString requires a current OpenGL context. RuntimeEnvironment is
+        // constructed before Swing/AWTGLCanvas creates one, so calling LWJGL
+        // here dereferences an uninitialised native function pointer on Windows.
+        return "";
     }
 
     private String detectOpenGLVendor() {
-        try {
-            return org.lwjgl.opengl.GL11.glGetString(org.lwjgl.opengl.GL11.GL_VENDOR);
-        } catch (Throwable t) {
-            return "";
-        }
+        return "";
     }
 
     private String detectOpenGLRenderer() {
-        try {
-            return org.lwjgl.opengl.GL11.glGetString(org.lwjgl.opengl.GL11.GL_RENDERER);
-        } catch (Throwable t) {
-            return "";
-        }
+        return "";
     }
 
     private boolean checkOpenGLCompatibility() {

@@ -33,6 +33,9 @@ public class UIEventBridge {
     /** Reference to the interaction manager for viewport mode changes. */
     private final com.geometry.interaction.InteractionManager interactionManager;
 
+    /** Application interaction controller for lesson and animation commands. */
+    private final UICommandHandler commandHandler;
+
     /**
      * Queue of UI events waiting to be dispatched.
      */
@@ -49,9 +52,21 @@ public class UIEventBridge {
             com.geometry.tools.ToolManager toolManager,
             com.geometry.scene.Scene scene,
             com.geometry.interaction.InteractionManager interactionManager) {
+        this(toolManager, scene, interactionManager, null);
+    }
+
+    /**
+     * Create a bridge with an optional application-side command handler.
+     */
+    public UIEventBridge(
+            com.geometry.tools.ToolManager toolManager,
+            com.geometry.scene.Scene scene,
+            com.geometry.interaction.InteractionManager interactionManager,
+            UICommandHandler commandHandler) {
         this.toolManager = toolManager;
         this.scene = scene;
         this.interactionManager = interactionManager;
+        this.commandHandler = commandHandler;
         this.eventQueue = new ArrayList<>();
     }
 
@@ -203,13 +218,15 @@ public class UIEventBridge {
     }
 
     private void onTeachingControl(UIEvent event) {
-        // Teaching controls are handled by the application layer
-        // The UI event is preserved for the application to act on
+        if (commandHandler != null) {
+            commandHandler.handleTeachingControl(event.getStringData());
+        }
     }
 
     private void onAnimationControl(UIEvent event) {
-        // Animation controls are handled by the application layer
-        // The UI event is preserved for the application to act on
+        if (commandHandler != null) {
+            commandHandler.handleAnimationControl(event.getStringData());
+        }
     }
 
     private void onToggleVisibility(UIEvent event) {
