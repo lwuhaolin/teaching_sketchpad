@@ -34,7 +34,7 @@ import static org.lwjgl.opengl.GL30.*;
  * To render:
  *   renderer.render();  // called each frame from the application loop
  */
-public class OpenGLRenderer implements Renderer {
+public class OpenGLRenderer implements Renderer, ModeSwitchableRenderer {
 
     // Window dimensions
     private static final int WINDOW_WIDTH = 800;

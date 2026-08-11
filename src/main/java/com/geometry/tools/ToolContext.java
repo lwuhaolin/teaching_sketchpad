@@ -4,6 +4,9 @@ import com.geometry.renderer.RenderMode;
 import com.geometry.renderer.Renderer;
 import com.geometry.scene.Scene;
 import com.geometry.scene.SelectionManager;
+import com.geometry.interaction.constraint.Free3DConstraint;
+import com.geometry.interaction.constraint.GeometryConstraint;
+import com.geometry.interaction.constraint.Planar2DConstraint;
 
 /**
  * Phase 06 - Context object passed to every Tool.
@@ -20,6 +23,7 @@ public class ToolContext {
     private final SelectionManager selectionManager;
     private final Renderer renderer;
     private RenderMode renderMode;
+    private GeometryConstraint constraint;
 
     /**
      * Create a ToolContext.
@@ -41,6 +45,8 @@ public class ToolContext {
         this.selectionManager = selectionManager;
         this.renderer = renderer;
         this.renderMode = renderMode != null ? renderMode : RenderMode.MODE_2D;
+        this.constraint = this.renderMode == RenderMode.MODE_2D
+                ? new Planar2DConstraint() : new Free3DConstraint();
     }
 
     // ------------------------------------------------------------------
@@ -87,6 +93,8 @@ public class ToolContext {
             throw new IllegalArgumentException("RenderMode cannot be null");
         }
         this.renderMode = renderMode;
+        this.constraint = renderMode == RenderMode.MODE_2D
+                ? new Planar2DConstraint() : new Free3DConstraint();
     }
 
     /**
@@ -101,5 +109,18 @@ public class ToolContext {
      */
     public boolean is3DMode() {
         return renderMode == RenderMode.MODE_3D;
+    }
+
+    /** The active behaviour rule used by tools, independent of input device. */
+    public GeometryConstraint getConstraint() {
+        return constraint;
+    }
+
+    /** Install a mode constraint supplied by ModeManager. */
+    public void setConstraint(GeometryConstraint constraint) {
+        if (constraint == null) {
+            throw new IllegalArgumentException("GeometryConstraint cannot be null");
+        }
+        this.constraint = constraint;
     }
 }

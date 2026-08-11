@@ -15,6 +15,7 @@ import com.geometry.ui.canvas.CanvasCommandListener;
 import com.geometry.ui.theme.EducationTheme;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
+import org.joml.Vector4f;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.awt.AWTGLCanvas;
 import org.lwjgl.opengl.awt.GLData;
@@ -143,6 +144,7 @@ public class LwjglThreeDimensionalCanvas extends GeometryCanvasView {
         private float distance = DEFAULT_DISTANCE;
         private int dragX;
         private int dragY;
+        private boolean objectDrag;
 
         OpenGlViewport() {
             super(createGlData());
@@ -224,10 +226,32 @@ public class LwjglThreeDimensionalCanvas extends GeometryCanvasView {
                     dragX = event.getX();
                     dragY = event.getY();
                     requestFocus();
+                    if (event.getButton() == MouseEvent.BUTTON1) {
+                        if (getArmedDrawType() != null) {
+                            completeWorldDraw(worldPosition(event.getX(), event.getY()));
+                            renderFrame();
+                            return;
+                        }
+                        SceneObject picked = pickAt(event.getX(), event.getY());
+                        selectSceneObject(picked);
+                        objectDrag = picked != null && !"select".equals(getActiveTool());
+                    } else {
+                        objectDrag = false;
+                    }
                 }
+                @Override public void mouseReleased(MouseEvent event) { objectDrag = false; }
             });
             addMouseMotionListener(new MouseMotionAdapter() {
                 @Override public void mouseDragged(MouseEvent event) {
+                    int dx = event.getX() - dragX;
+                    int dy = event.getY() - dragY;
+                    if (objectDrag) {
+                        dispatchViewportDrag(scene.getSelected(), dx, dy);
+                        dragX = event.getX();
+                        dragY = event.getY();
+                        renderFrame();
+                        return;
+                    }
                     yaw += (event.getX() - dragX) * 0.45f;
                     pitch = Math.max(-80f, Math.min(80f, pitch + (event.getY() - dragY) * 0.35f));
                     dragX = event.getX();
@@ -242,6 +266,54 @@ public class LwjglThreeDimensionalCanvas extends GeometryCanvasView {
                     renderFrame();
                 }
             });
+        }
+
+        /** Camera-aware screen projection; nearest projected solid wins. */
+        private SceneObject pickAt(int x, int y) {
+            int width = Math.max(1, getWidth());
+            int height = Math.max(1, getHeight());
+            updateCamera(width, height);
+            SceneObject closest = null;
+            float closestDepth = Float.MAX_VALUE;
+            for (SceneObject object : scene.getAllObjects()) {
+                if (!isSolid(object)) continue;
+                Vec3 p = object.getEffectiveTransform().getPosition();
+                Vector4f projected = new Vector4f(p.x, p.y, p.z, 1f)
+                        .mul(viewMatrix).mul(projectionMatrix);
+                if (projected.w <= 0f) continue;
+                float sx = (projected.x / projected.w * .5f + .5f) * width;
+                float sy = (1f - (projected.y / projected.w * .5f + .5f)) * height;
+                float radius = projectedRadius(object, width, projected.w);
+                float distanceToCenter = (float) Math.hypot(x - sx, y - sy);
+                if (distanceToCenter <= radius && projected.w < closestDepth) {
+                    closest = object;
+                    closestDepth = projected.w;
+                }
+            }
+            return closest;
+        }
+
+        private float projectedRadius(SceneObject object, int width, float clipW) {
+            float radius = 1.2f;
+            GeometryObject geometry = object.getGeometry();
+            if (geometry instanceof com.geometry.core.geometry.Cube) {
+                radius = ((com.geometry.core.geometry.Cube) geometry).getWidth() * .9f;
+            } else if (geometry instanceof com.geometry.core.geometry.Sphere) {
+                radius = ((com.geometry.core.geometry.Sphere) geometry).getRadius();
+            } else if (geometry instanceof com.geometry.core.geometry.Cylinder) {
+                radius = Math.max(((com.geometry.core.geometry.Cylinder) geometry).getRadius(),
+                        ((com.geometry.core.geometry.Cylinder) geometry).getHeight() * .5f);
+            } else if (geometry instanceof com.geometry.core.geometry.Cone) {
+                radius = Math.max(((com.geometry.core.geometry.Cone) geometry).getRadius(),
+                        ((com.geometry.core.geometry.Cone) geometry).getHeight() * .5f);
+            }
+            return Math.max(18f, radius * width / (2.414f * clipW));
+        }
+
+        private Vec3 worldPosition(int x, int y) {
+            float scale = distance / 7f;
+            return new Vec3((x - getWidth() * .5f) / 100f * scale,
+                    (getHeight() * .5f - y) / 100f * scale, 0f);
         }
 
         void renderFrame() {

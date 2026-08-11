@@ -51,7 +51,9 @@ public class ScaleTool implements Tool {
             ScaleAction scaleAction = (ScaleAction) action;
             com.geometry.scene.SceneObject target = scaleAction.getTarget();
             if (target != null && context.getSelectionManager().isSelected(target)) {
-                scaleAction.execute();
+                com.geometry.core.transform.Transform current = target.getEffectiveTransform();
+                target.setOverrideTransform(context.getConstraint()
+                        .constrainTransform(current.scaleUniform(scaleAction.getScaleFactor())));
             }
         }
     }

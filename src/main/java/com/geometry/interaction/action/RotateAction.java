@@ -14,13 +14,22 @@ public class RotateAction implements Action {
     private final SceneObject target;
     /** Rotation delta in degrees (around Z axis for 2D, or full Euler for 3D). */
     private final float angleDegrees;
+    private final com.geometry.core.math.Vec3 delta;
 
     public RotateAction(SceneObject target, float angleDegrees) {
+        this(target, new com.geometry.core.math.Vec3(0f, 0f, angleDegrees));
+    }
+
+    public RotateAction(SceneObject target, com.geometry.core.math.Vec3 delta) {
         if (target == null) {
             throw new IllegalArgumentException("Target SceneObject cannot be null");
         }
         this.target = target;
-        this.angleDegrees = angleDegrees;
+        if (delta == null) {
+            throw new IllegalArgumentException("Rotation delta cannot be null");
+        }
+        this.delta = delta;
+        this.angleDegrees = delta.z;
     }
 
     @Override
@@ -29,8 +38,6 @@ public class RotateAction implements Action {
         if (current == null) {
             current = target.getGeometry().getTransform();
         }
-        com.geometry.core.math.Vec3 delta =
-                new com.geometry.core.math.Vec3(0f, 0f, angleDegrees);
         com.geometry.core.transform.Transform updated = current.rotate(delta);
         target.setOverrideTransform(updated);
     }
@@ -47,4 +54,6 @@ public class RotateAction implements Action {
     public float getAngleDegrees() {
         return angleDegrees;
     }
+
+    public com.geometry.core.math.Vec3 getDelta() { return delta; }
 }

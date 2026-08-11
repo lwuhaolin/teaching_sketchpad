@@ -54,9 +54,11 @@ public class RotateTool implements Tool {
             RotateAction rotateAction = (RotateAction) action;
             com.geometry.scene.SceneObject target = rotateAction.getTarget();
             if (target != null && context.getSelectionManager().isSelected(target)) {
-                // In 2D mode, constrain to Z-axis rotation (already the default)
-                // In 3D mode, allow full rotation
-                rotateAction.execute();
+                com.geometry.core.transform.Transform current = target.getEffectiveTransform();
+                com.geometry.core.math.Vec3 delta = context.getConstraint()
+                        .constrainRotation(rotateAction.getDelta());
+                target.setOverrideTransform(context.getConstraint()
+                        .constrainTransform(current.rotate(delta)));
             }
         }
     }

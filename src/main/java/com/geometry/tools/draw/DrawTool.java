@@ -84,6 +84,12 @@ public class DrawTool implements Tool {
             case CIRCLE:
                 handleShape(drawAction);
                 break;
+            case CUBE:
+            case SPHERE:
+            case CYLINDER:
+            case CONE:
+                handleSolid(drawAction);
+                break;
             default:
                 break;
         }
@@ -97,8 +103,7 @@ public class DrawTool implements Tool {
      * Handle a POINT draw action — create a small sphere at the given position.
      */
     private void handlePoint(DrawAction action) {
-        Vec2 screenPos = action.getStart();
-        com.geometry.core.math.Vec3 worldPos = screenToWorld(screenPos);
+        com.geometry.core.math.Vec3 worldPos = worldStart(action);
         com.geometry.core.geometry.Sphere pointGeo =
                 new com.geometry.core.geometry.Sphere(POINT_RADIUS, 8, 4);
         pointGeo.setTransform(new com.geometry.core.transform.Transform(
@@ -118,8 +123,8 @@ public class DrawTool implements Tool {
     private void handleShape(DrawAction action) {
         Vec2 start = action.getStart();
         Vec2 end = action.getEnd();
-        com.geometry.core.math.Vec3 worldStart = screenToWorld(start);
-        com.geometry.core.math.Vec3 worldEnd = screenToWorld(end);
+        com.geometry.core.math.Vec3 worldStart = worldStart(action);
+        com.geometry.core.math.Vec3 worldEnd = worldEnd(action);
 
         com.geometry.core.geometry.GeometryObject geometry;
         switch (action.getDrawType()) {
@@ -139,6 +144,40 @@ public class DrawTool implements Tool {
                 return;
         }
         context.getScene().addObject(geometry);
+    }
+
+    /** Creates a classroom-sized solid at the world location selected in the 3D viewport. */
+    private void handleSolid(DrawAction action) {
+        com.geometry.core.math.Vec3 position = worldStart(action);
+        com.geometry.core.geometry.GeometryObject geometry;
+        switch (action.getDrawType()) {
+            case CUBE:
+                geometry = new com.geometry.core.geometry.Cube(2f, 2f, 2f);
+                break;
+            case SPHERE:
+                geometry = new com.geometry.core.geometry.Sphere(1.1f, 20, 12);
+                break;
+            case CYLINDER:
+                geometry = new com.geometry.core.geometry.Cylinder(1f, 2.4f, 20);
+                break;
+            case CONE:
+                geometry = new com.geometry.core.geometry.Cone(1.1f, 2.4f, 20);
+                break;
+            default:
+                return;
+        }
+        geometry.setTransform(new com.geometry.core.transform.Transform(position,
+                new com.geometry.core.math.Vec3(0f, 0f, 0f),
+                new com.geometry.core.math.Vec3(1f, 1f, 1f)));
+        context.getScene().addObject(geometry);
+    }
+
+    private com.geometry.core.math.Vec3 worldStart(DrawAction action) {
+        return action.hasWorldCoordinates() ? action.getWorldStart() : screenToWorld(action.getStart());
+    }
+
+    private com.geometry.core.math.Vec3 worldEnd(DrawAction action) {
+        return action.hasWorldCoordinates() ? action.getWorldEnd() : screenToWorld(action.getEnd());
     }
 
     /**

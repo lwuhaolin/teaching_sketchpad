@@ -30,6 +30,9 @@ import java.util.List;
 import com.geometry.interaction.action.MoveAction;
 import com.geometry.interaction.action.RotateAction;
 import com.geometry.interaction.action.ScaleAction;
+import com.geometry.interaction.action.DrawAction;
+import com.geometry.interaction.mode.GeometryMode;
+import com.geometry.interaction.mode.ModeManager;
 import com.geometry.scene.SelectionManager;
 import com.geometry.tools.cut.CutTool;
 import com.geometry.core.math.Vec3;
@@ -66,6 +69,7 @@ public class TeachingWorkspace extends JFrame {
     private final TeachingInteractionController commandController;
     private final TeachingManager teachingManager;
     private final InputModeManager inputModeManager;
+    private final ModeManager geometryModeManager;
 
     private GeometryCanvasView canvasView;
     private GeometryCanvasView twoDimensionalCanvas;
@@ -108,6 +112,8 @@ public class TeachingWorkspace extends JFrame {
         this.toolManager = toolManager;
         this.teachingManager = teachingManager;
         ToolBootstrapper.registerMissingTools(toolManager, scene);
+        this.geometryModeManager = new ModeManager(scene);
+        this.geometryModeManager.applyTo(ToolBootstrapper.getToolContext(toolManager));
         this.commandController = new TeachingInteractionController(scene, teachingManager, animationManager);
         this.inputModeManager = new InputModeManager(null, null);
 
@@ -115,6 +121,8 @@ public class TeachingWorkspace extends JFrame {
         setMinimumSize(new Dimension(1024, 700));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         buildContent(scene, toolManager, interactionManager, animationManager);
+        geometryModeManager.setMode(GeometryMode.MODE_2D);
+        geometryModeManager.applyTo(ToolBootstrapper.getToolContext(toolManager));
     }
 
     // ── Build ─────────────────────────────────────────────────────────
@@ -760,6 +768,10 @@ public class TeachingWorkspace extends JFrame {
                 BorderFactory.createEmptyBorder(6, 12, 6, 12)));
         bottomToolbar.setPreferredSize(new Dimension(0, UIStyle.BOTTOM_TOOLBAR_HEIGHT));
 
+        JButton addGeometry = productButton("＋ 新增", theme.getPrimaryColor(), Color.WHITE);
+        addGeometry.addActionListener(e -> showAddGeometryMenu(addGeometry));
+        bottomToolbar.add(addGeometry);
+
         String[] tools = {"select", "move", "rotate", "scale", "cut", "unfold", "measure", "animation"};
         String[] labels = {
                 UiStrings.text("tool.select"),
@@ -805,6 +817,33 @@ public class TeachingWorkspace extends JFrame {
             btn.setActive(label.equals(btn.getText()));
         }
         updateHint();
+    }
+
+    private void showAddGeometryMenu(Component invoker) {
+        JPopupMenu menu = new JPopupMenu();
+        if (canvasView.getViewMode() == ViewMode.MODE_2D) {
+            addGeometryItem(menu, "点", DrawAction.DrawType.POINT);
+            addGeometryItem(menu, "线段", DrawAction.DrawType.LINE);
+            addGeometryItem(menu, "矩形", DrawAction.DrawType.RECTANGLE);
+            addGeometryItem(menu, "圆", DrawAction.DrawType.CIRCLE);
+        } else {
+            addGeometryItem(menu, "立方体", DrawAction.DrawType.CUBE);
+            addGeometryItem(menu, "球体", DrawAction.DrawType.SPHERE);
+            addGeometryItem(menu, "圆柱体", DrawAction.DrawType.CYLINDER);
+            addGeometryItem(menu, "圆锥体", DrawAction.DrawType.CONE);
+        }
+        menu.show(invoker, 0, -menu.getPreferredSize().height);
+    }
+
+    private void addGeometryItem(JPopupMenu menu, String label, final DrawAction.DrawType type) {
+        JMenuItem item = new JMenuItem(label);
+        item.addActionListener(e -> {
+            switchTool("draw");
+            canvasView.armDraw(type);
+            toolHint.setText(canvasView.getViewMode() == ViewMode.MODE_2D
+                    ? "拖拽白板以创建" + label : "在三维视图中单击以放置" + label);
+        });
+        menu.add(item);
     }
 
     // ── Floating toolbar ──────────────────────────────────────────────
@@ -901,6 +940,9 @@ public class TeachingWorkspace extends JFrame {
     public void setViewMode(ViewMode mode) {
         ViewMode targetMode = mode == null ? ViewMode.MODE_2D : mode;
         canvasView = targetMode == ViewMode.MODE_3D ? threeDimensionalCanvas : twoDimensionalCanvas;
+        geometryModeManager.setMode(targetMode == ViewMode.MODE_2D
+                ? GeometryMode.MODE_2D : GeometryMode.MODE_3D);
+        geometryModeManager.applyTo(ToolBootstrapper.getToolContext(toolManager));
         if (viewPageLayout != null && viewPages != null) {
             viewPageLayout.show(viewPages, targetMode.name());
         }
@@ -990,6 +1032,9 @@ public class TeachingWorkspace extends JFrame {
             int btnSize = whiteboard ? 104 : (tablet ? 90 : 86);
             btn.setPreferredSize(new Dimension(btnSize, toolbarHeight - 12));
         }
+        int touchTolerance = inputModeManager.getTouchTolerance();
+        if (twoDimensionalCanvas != null) twoDimensionalCanvas.setTouchTolerancePixels(touchTolerance);
+        if (threeDimensionalCanvas != null) threeDimensionalCanvas.setTouchTolerancePixels(touchTolerance);
 
         // Update mode label
         String modeText = desktop ? UiStrings.text("input.desktop")
@@ -1058,6 +1103,17 @@ public class TeachingWorkspace extends JFrame {
                             object, new Vec3(0f, 1f, 0f), 0f);
                     toolHint.setText("已执行水平切割，可继续选择切割后的几何体");
                     canvasView.resetView();
+                }
+            }
+
+            @Override
+            public void onDraw(DrawAction action) {
+                toolManager.dispatchAction(action);
+                SceneObject created = scene.getSelected();
+                if (created != null) {
+                    onSelectionChanged(created);
+                    refreshObjectList();
+                    toolHint.setText("已新增" + productGeometryName(created));
                 }
             }
         };

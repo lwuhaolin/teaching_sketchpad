@@ -10,6 +10,7 @@ import com.geometry.core.geometry.Rectangle;
 import com.geometry.core.geometry.Sphere;
 import com.geometry.core.math.Vec3;
 import com.geometry.core.transform.Transform;
+import com.geometry.interaction.action.DrawAction;
 import com.geometry.renderer.Renderer;
 import com.geometry.scene.Scene;
 import com.geometry.scene.SceneObject;
@@ -57,6 +58,9 @@ public class GeometryCanvasView extends JPanel {
     private int lastX;
     private int lastY;
     private boolean dragging;
+    private DrawAction.DrawType drawType;
+    private Vec3 drawStartWorld;
+    private int touchTolerancePixels = 8;
 
     public GeometryCanvasView(Scene scene, Renderer renderer, EducationTheme theme) {
         this.scene = scene;
@@ -82,6 +86,52 @@ public class GeometryCanvasView extends JPanel {
                 : java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
     }
 
+    /** Arms a geometry type for the next canvas gesture and switches to draw mode. */
+    public void armDraw(DrawAction.DrawType type) {
+        this.drawType = type;
+        setActiveTool("draw");
+    }
+
+    public void setTouchTolerancePixels(int tolerance) {
+        this.touchTolerancePixels = Math.max(4, tolerance);
+    }
+
+    protected String getActiveTool() { return activeTool; }
+
+    protected DrawAction.DrawType getArmedDrawType() { return drawType; }
+
+    protected void completeWorldDraw(Vec3 position) {
+        if (drawType != null && commandListener != null) {
+            commandListener.onDraw(DrawAction.world(drawType, position, position));
+            drawType = null;
+        }
+    }
+
+    /** Applies externally calculated 3D picking while retaining the shared selection/tool bridge. */
+    protected void selectSceneObject(SceneObject object) {
+        selectedIndex = -1;
+        if (scene != null && object != null) {
+            List<SceneObject> objects = scene.getAllObjects();
+            selectedIndex = objects.indexOf(object);
+            scene.select(object);
+        } else if (scene != null) {
+            scene.clearSelection();
+        }
+        if (commandListener != null) commandListener.onSelectionChanged(object);
+        repaint();
+    }
+
+    protected void dispatchViewportDrag(SceneObject object, int dx, int dy) {
+        if (object == null || commandListener == null) return;
+        if ("move".equals(activeTool)) {
+            commandListener.onMove(object, toWorld(dx), -toWorld(dy));
+        } else if ("rotate".equals(activeTool)) {
+            commandListener.onRotate(object, dx * 0.75f);
+        } else if ("scale".equals(activeTool)) {
+            commandListener.onScale(object, clampScale(1f + (dx - dy) * 0.012f));
+        }
+    }
+
     private void installInputHandlers() {
         addMouseListener(new MouseAdapter() {
             @Override
@@ -89,6 +139,15 @@ public class GeometryCanvasView extends JPanel {
                 lastX = event.getX();
                 lastY = event.getY();
                 dragging = true;
+                if ("draw".equals(activeTool) && drawType != null) {
+                    drawStartWorld = screenToWorld(lastX, lastY);
+                    if (drawType == DrawAction.DrawType.POINT && commandListener != null) {
+                        commandListener.onDraw(DrawAction.world(drawType, drawStartWorld, drawStartWorld));
+                        drawType = null;
+                        dragging = false;
+                    }
+                    return;
+                }
                 selectAt(lastX, lastY);
                 if ("cut".equals(activeTool) && getSelectedObject() != null && commandListener != null) {
                     commandListener.onCut(getSelectedObject());
@@ -97,6 +156,14 @@ public class GeometryCanvasView extends JPanel {
 
             @Override
             public void mouseReleased(MouseEvent event) {
+                if ("draw".equals(activeTool) && drawType != null && drawStartWorld != null
+                        && commandListener != null) {
+                    commandListener.onDraw(DrawAction.world(drawType, drawStartWorld,
+                            screenToWorld(event.getX(), event.getY())));
+                    drawType = null;
+                    drawStartWorld = null;
+                    repaint();
+                }
                 dragging = false;
             }
         });
@@ -109,6 +176,11 @@ public class GeometryCanvasView extends JPanel {
                 int dx = event.getX() - lastX;
                 int dy = event.getY() - lastY;
                 SceneObject selected = getSelectedObject();
+                if ("draw".equals(activeTool)) {
+                    lastX = event.getX();
+                    lastY = event.getY();
+                    return;
+                }
                 if (selected != null && commandListener != null) {
                     if ("move".equals(activeTool)) {
                         commandListener.onMove(selected, toWorld(dx), -toWorld(dy));
@@ -346,9 +418,10 @@ public class GeometryCanvasView extends JPanel {
         return new java.awt.Polygon(xi, yi, xs.length);
     }
 
-    private void selectAt(int screenX, int screenY) {
-        double wx = (screenX - getWidth() / 2.0 - panX) / (PIXELS_PER_UNIT * zoom);
-        double wy = (getHeight() / 2.0 + panY - screenY) / (PIXELS_PER_UNIT * zoom);
+    protected void selectAt(int screenX, int screenY) {
+        Vec3 world = screenToWorld(screenX, screenY);
+        double wx = world.x;
+        double wy = world.y;
         selectedIndex = -1;
         if (scene != null) {
             List<SceneObject> objects = scene.getAllObjects();
@@ -358,7 +431,8 @@ public class GeometryCanvasView extends JPanel {
                 if (!object.isVisible() || !isObjectInCurrentView(object)) continue;
                 Vec3 position = object.getEffectiveTransform().getPosition();
                 double distance = Math.hypot(wx - position.x, wy - position.y);
-                double tolerance = hitRadius(object.getGeometry()) * maxScale(object.getEffectiveTransform()) + .22;
+                double tolerance = hitRadius(object.getGeometry()) * maxScale(object.getEffectiveTransform())
+                        + touchTolerancePixels / (PIXELS_PER_UNIT * zoom);
                 if (distance <= tolerance && distance < best) {
                     selectedIndex = i;
                     best = distance;
@@ -393,11 +467,16 @@ public class GeometryCanvasView extends JPanel {
         repaint();
     }
 
-    private float toWorld(int pixels) {
+    protected Vec3 screenToWorld(int screenX, int screenY) {
+        return new Vec3((float) ((screenX - getWidth() / 2.0 - panX) / (PIXELS_PER_UNIT * zoom)),
+                (float) ((getHeight() / 2.0 + panY - screenY) / (PIXELS_PER_UNIT * zoom)), 0f);
+    }
+
+    protected float toWorld(int pixels) {
         return (float) (pixels / (PIXELS_PER_UNIT * zoom));
     }
 
-    private float clampScale(float factor) {
+    protected float clampScale(float factor) {
         return Math.max(0.7f, Math.min(1.35f, factor));
     }
 
@@ -406,7 +485,7 @@ public class GeometryCanvasView extends JPanel {
         return Math.max(Math.abs(scale.x), Math.abs(scale.y));
     }
 
-    private double hitRadius(GeometryObject geometry) {
+    protected double hitRadius(GeometryObject geometry) {
         if (geometry instanceof Rectangle) {
             Rectangle r = (Rectangle) geometry;
             return Math.max(r.getWidth(), r.getHeight()) * .72;

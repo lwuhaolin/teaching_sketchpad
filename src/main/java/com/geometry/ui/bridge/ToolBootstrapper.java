@@ -21,6 +21,8 @@ public final class ToolBootstrapper {
 
     private static final Map<ToolManager, SelectionManager> SELECTIONS =
             new WeakHashMap<ToolManager, SelectionManager>();
+    private static final Map<ToolManager, ToolContext> CONTEXTS =
+            new WeakHashMap<ToolManager, ToolContext>();
 
     private ToolBootstrapper() {
     }
@@ -34,7 +36,11 @@ public final class ToolBootstrapper {
             selectionManager = new SelectionManager();
             SELECTIONS.put(toolManager, selectionManager);
         }
-        ToolContext context = new ToolContext(scene, selectionManager, null, null);
+        ToolContext context = CONTEXTS.get(toolManager);
+        if (context == null) {
+            context = new ToolContext(scene, selectionManager, null, null);
+            CONTEXTS.put(toolManager, context);
+        }
         register(toolManager, "select", new SelectTool(context));
         register(toolManager, "move", new MoveTool(context));
         register(toolManager, "rotate", new RotateTool(context));
@@ -51,6 +57,11 @@ public final class ToolBootstrapper {
     /** Returns the selection state shared by the canvas and registered tools. */
     public static SelectionManager getSelectionManager(ToolManager toolManager) {
         return toolManager == null ? null : SELECTIONS.get(toolManager);
+    }
+
+    /** Returns the shared context so the application can apply view constraints. */
+    public static ToolContext getToolContext(ToolManager toolManager) {
+        return toolManager == null ? null : CONTEXTS.get(toolManager);
     }
 
     private static void register(ToolManager manager, String name, com.geometry.tools.Tool tool) {

@@ -15,20 +15,26 @@ public class MoveAction implements Action {
     /** Movement delta in world space units. */
     private final float deltaX;
     private final float deltaY;
+    private final float deltaZ;
 
     public MoveAction(SceneObject target, float deltaX, float deltaY) {
+        this(target, deltaX, deltaY, 0f);
+    }
+
+    public MoveAction(SceneObject target, float deltaX, float deltaY, float deltaZ) {
         if (target == null) {
             throw new IllegalArgumentException("Target SceneObject cannot be null");
         }
         this.target = target;
         this.deltaX = deltaX;
         this.deltaY = deltaY;
+        this.deltaZ = deltaZ;
     }
 
     @Override
     public void execute() {
         com.geometry.core.math.Vec3 delta =
-                new com.geometry.core.math.Vec3(deltaX, deltaY, 0f);
+                new com.geometry.core.math.Vec3(deltaX, deltaY, deltaZ);
         com.geometry.core.transform.Transform current = target.getOverrideTransform();
         if (current == null) {
             current = target.getGeometry().getTransform();
@@ -53,5 +59,11 @@ public class MoveAction implements Action {
 
     public float getDeltaY() {
         return deltaY;
+    }
+
+    public float getDeltaZ() { return deltaZ; }
+
+    public com.geometry.core.math.Vec3 getDelta() {
+        return new com.geometry.core.math.Vec3(deltaX, deltaY, deltaZ);
     }
 }

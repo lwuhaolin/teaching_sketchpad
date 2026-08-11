@@ -54,7 +54,11 @@ public class MoveTool implements Tool {
             // Verify the target is still in the scene and selected
             com.geometry.scene.SceneObject target = moveAction.getTarget();
             if (target != null && context.getSelectionManager().isSelected(target)) {
-                moveAction.execute();
+                com.geometry.core.transform.Transform current = target.getEffectiveTransform();
+                com.geometry.core.math.Vec3 delta = context.getConstraint()
+                        .constrainTranslation(moveAction.getDelta());
+                target.setOverrideTransform(context.getConstraint()
+                        .constrainTransform(current.translate(delta)));
             }
         }
         // Other action types are ignored by this tool
