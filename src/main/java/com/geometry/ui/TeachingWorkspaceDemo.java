@@ -149,8 +149,8 @@ public class TeachingWorkspaceDemo {
         System.out.println("\n--- Theme Demo ---");
         EducationTheme theme = new EducationTheme();
         System.out.println("Background: #" + Integer.toHexString(theme.getBackgroundColor().getRGB()).toUpperCase());
-        System.out.println("Active tool: #" + Integer.toHexString(theme.getActiveToolColor().getRGB()).toUpperCase());
-        System.out.println("Selection: #" + Integer.toHexString(theme.getSelectionColor().getRGB()).toUpperCase());
+        System.out.println("Primary:    #" + Integer.toHexString(theme.getPrimaryColor().getRGB()).toUpperCase());
+        System.out.println("Selection:  #" + Integer.toHexString(theme.getSelectionColor().getRGB()).toUpperCase());
         System.out.println("Font (desktop): " + theme.getFont(InputMode.DESKTOP));
         System.out.println("Font (whiteboard): " + theme.getFont(InputMode.WHITEBOARD));
 
@@ -185,7 +185,7 @@ public class TeachingWorkspaceDemo {
         ws.showWorkspace();
         System.out.println("Window title: " + ws.getTitle());
         System.out.println("Window size: " + ws.getSize());
-        System.out.println("Workspace created: " + ws.getWorkspace() != null);
+        System.out.println("Canvas view mode: " + ws.getCanvasView().getViewMode());
         System.out.println("Input mode: " + ws.getInputModeManager().getMode());
         System.out.println("\nDemo complete. Close the window to exit.");
     }

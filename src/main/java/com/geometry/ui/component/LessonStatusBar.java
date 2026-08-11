@@ -38,16 +38,16 @@ public class LessonStatusBar extends JPanel {
     public LessonStatusBar(EducationTheme theme) {
         this.theme = theme;
         setLayout(new FlowLayout(FlowLayout.LEFT, 16, 0));
-        setBackground(theme.getToolbarColor());
+        setBackground(theme.getHeaderColor());
         setPreferredSize(new Dimension(0, STATUS_BAR_HEIGHT));
         setMinimumSize(new Dimension(0, STATUS_BAR_HEIGHT));
 
         lessonLabel = new JLabel("Lesson: —");
-        lessonLabel.setForeground(theme.getToolbarTextColor());
+        lessonLabel.setForeground(theme.getHeaderTextColor());
         lessonLabel.setFont(new Font("Microsoft YaHei", Font.PLAIN, 13));
 
         stepLabel = new JLabel("Step: 0 / 0");
-        stepLabel.setForeground(theme.getToolbarTextColor());
+        stepLabel.setForeground(theme.getHeaderTextColor());
         stepLabel.setFont(new Font("Microsoft YaHei", Font.PLAIN, 13));
 
         modeLabel = new JLabel("Mode: Desktop");

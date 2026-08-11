@@ -40,6 +40,9 @@ public class ToolbarSize {
     /** Default toolbar height in whiteboard mode. */
     public static final int WHITEBOARD_TOOLBAR_HEIGHT = 80;
 
+    /** Tablet button height in pixels. */
+    public static final int TABLET_BUTTON_HEIGHT = 52;
+
     private ToolbarSize() {
         // Utility class — prevent instantiation
     }
